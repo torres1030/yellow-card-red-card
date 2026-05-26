@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meeting Card Buzzer — City of Pharr</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#07101F;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  padding:24px 16px;
+  overflow-x:hidden;
+}
+
+/* HEADER */
+.hdr{text-align:center;margin-bottom:32px;}
+.hdr-pre{font-size:11px;letter-spacing:.28em;color:rgba(255,255,255,.35);
+  text-transform:uppercase;margin-bottom:8px;}
+.hdr-title{font-size:clamp(22px,5vw,34px);font-weight:800;color:#fff;letter-spacing:-.01em;}
+.hdr-title span{color:#F5C518;}
+.hdr-sub{font-size:13px;color:rgba(255,255,255,.4);margin-top:6px;}
+
+/* CARDS ROW */
+.cards-row{display:flex;gap:clamp(16px,4vw,40px);justify-content:center;
+  flex-wrap:wrap;margin-bottom:28px;}
+
+/* CARD BUTTON */
+.card-btn{
+  width:clamp(140px,20vw,180px);
+  height:clamp(200px,28vw,250px);
+  border-radius:14px;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;position:relative;overflow:hidden;
+  transition:transform .08s,box-shadow .08s;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.card-btn:active{transform:translateY(5px)!important;}
+.card-btn .card-emoji{font-size:clamp(56px,10vw,80px);line-height:1;pointer-events:none;}
+.card-btn .card-label{font-size:clamp(11px,2vw,14px);font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;pointer-events:none;}
+
+/* YELLOW */
+.btn-yellow{
+  background:linear-gradient(160deg,#FFDB2C 0%,#F5C518 60%,#E8B400 100%);
+  box-shadow:0 7px 0 #B8940F, 0 10px 28px rgba(245,197,24,.35);
+  color:#5C3D00;
+}
+.btn-yellow:hover{transform:translateY(-2px);
+  box-shadow:0 9px 0 #B8940F,0 14px 36px rgba(245,197,24,.45);}
+.btn-yellow:active{box-shadow:0 2px 0 #B8940F,0 4px 12px rgba(245,197,24,.2);}
+
+/* RED */
+.btn-red{
+  background:linear-gradient(160deg,#FF4C4C 0%,#E53935 60%,#C62828 100%);
+  box-shadow:0 7px 0 #7B1111, 0 10px 28px rgba(229,57,53,.4);
+  color:#fff;
+}
+.btn-red:hover{transform:translateY(-2px);
+  box-shadow:0 9px 0 #7B1111,0 14px 36px rgba(229,57,53,.55);}
+.btn-red:active{box-shadow:0 2px 0 #7B1111,0 4px 12px rgba(229,57,53,.2);}
+
+/* COUNTS */
+.count-wrap{display:flex;gap:clamp(16px,4vw,40px);justify-content:center;margin-bottom:20px;}
+.count-block{text-align:center;min-width:clamp(140px,20vw,180px);}
+.count-num{font-size:clamp(28px,5vw,40px);font-weight:800;line-height:1;}
+.count-num.yellow{color:#F5C518;}
+.count-num.red{color:#E53935;}
+.count-lbl{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;}
+
+/* STATUS */
+.status-box{
+  min-height:56px;display:flex;align-items:center;justify-content:center;
+  font-size:clamp(15px,3vw,20px);font-weight:700;
+  text-align:center;padding:0 20px;letter-spacing:.02em;
+  transition:all .2s;color:rgba(255,255,255,.4);
+  margin-bottom:20px;max-width:480px;
+}
+
+/* LOG */
+.log-wrap{width:100%;max-width:420px;}
+.log-hdr{font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.25);
+  text-transform:uppercase;margin-bottom:8px;padding-left:4px;}
+.log-list{display:flex;flex-direction:column;gap:5px;max-height:140px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;}
+.log-list::-webkit-scrollbar{width:4px;}
+.log-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.log-row{display:flex;justify-content:space-between;align-items:center;
+  padding:6px 10px;border-radius:5px;font-size:12px;}
+.log-row.y{background:rgba(245,197,24,.1);color:#F5C518;}
+.log-row.r{background:rgba(229,57,53,.1);color:#FF8A80;}
+.log-row .log-time{font-size:11px;color:rgba(255,255,255,.3);}
+
+/* RESET */
+.reset-btn{
+  margin-top:20px;background:transparent;
+  border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.3);
+  font-size:12px;padding:7px 20px;border-radius:20px;cursor:pointer;
+  transition:all .15s;letter-spacing:.06em;
+}
+.reset-btn:hover{border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.6);}
+
+/* FLASH OVERLAY */
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:999;
+  transition:opacity .07s;}
+
+/* SHAKE ANIMATION */
+@keyframes shake{
+  0%{transform:translateX(-10px);}
+  15%{transform:translateX(10px);}
+  30%{transform:translateX(-8px);}
+  45%{transform:translateX(8px);}
+  60%{transform:translateX(-5px);}
+  75%{transform:translateX(5px);}
+  100%{transform:translateX(0);}
+}
+.shaking{animation:shake .32s ease-out;}
+
+/* FOOTER */
+.footer{margin-top:28px;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:.06em;text-align:center;}
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<div class="hdr">
+  <div class="hdr-pre">City of Pharr · Office of Strategic Excellence</div>
+  <div class="hdr-title">Meeting <span>Card Buzzer</span></div>
+  <div class="hdr-sub">Keep your meetings on track. No mercy.</div>
+</div>
+
+<div class="cards-row">
+  <button class="card-btn btn-yellow" id="btn-yellow" onclick="triggerYellow()">
+    <div class="card-emoji">🟨</div>
+    <div class="card-label">Yellow Card</div>
+  </button>
+  <button class="card-btn btn-red" id="btn-red" onclick="triggerRed()">
+    <div class="card-emoji">🟥</div>
+    <div class="card-label">Red Card</div>
+  </button>
+</div>
+
+<div class="count-wrap">
+  <div class="count-block">
+    <div class="count-num yellow" id="y-count">0</div>
+    <div class="count-lbl">Warnings</div>
+  </div>
+  <div class="count-block">
+    <div class="count-num red" id="r-count">0</div>
+    <div class="count-lbl">Ejections</div>
+  </div>
+</div>
+
+<div class="status-box" id="status">Press a card to use it</div>
+
+<div class="log-wrap">
+  <div class="log-hdr">Session log</div>
+  <div class="log-list" id="log"></div>
+</div>
+
+<button class="reset-btn" onclick="resetAll()">Reset Session</button>
+
+<div class="footer">City of Pharr · Excellence Every Day · 2026</div>
+
+<script>
+var yCount=0,rCount=0;
+var ctx=null;
+
+function getCtx(){
+  if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();
+  if(ctx.state==='suspended')ctx.resume();
+  return ctx;
+}
+
+function playYellow(){
+  var c=getCtx(),now=c.currentTime;
+  var g=c.createGain();g.connect(c.destination);
+  g.gain.setValueAtTime(0.18,now);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.65);
+  var o=c.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(880,now);
+  o.frequency.exponentialRampToValueAtTime(660,now+0.32);
+  o.connect(g);o.start(now);o.stop(now+0.65);
+  var g2=c.createGain();g2.connect(c.destination);
+  g2.gain.setValueAtTime(0.1,now+0.06);
+  g2.gain.exponentialRampToValueAtTime(0.001,now+0.7);
+  var o2=c.createOscillator();o2.type='sine';
+  o2.frequency.setValueAtTime(1100,now+0.06);
+  o2.frequency.exponentialRampToValueAtTime(880,now+0.38);
+  o2.connect(g2);o2.start(now+0.06);o2.stop(now+0.7);
+}
+
+function playRed(){
+  var c=getCtx(),now=c.currentTime;
+  for(var rep=0;rep<3;rep++){
+    (function(t){
+      var g=c.createGain();g.connect(c.destination);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.7,t+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.19);
+      var o=c.createOscillator();o.type='sawtooth';
+      o.frequency.setValueAtTime(120,t);
+      o.frequency.linearRampToValueAtTime(70,t+0.19);
+      o.connect(g);o.start(t);o.stop(t+0.2);
+
+      var g2=c.createGain();g2.connect(c.destination);
+      g2.gain.setValueAtTime(0.55,t);
+      g2.gain.exponentialRampToValueAtTime(0.001,t+0.19);
+      var o2=c.createOscillator();o2.type='square';
+      o2.frequency.setValueAtTime(55,t);
+      o2.connect(g2);o2.start(t);o2.stop(t+0.19);
+
+      var g3=c.createGain();g3.connect(c.destination);
+      g3.gain.setValueAtTime(0.4,t);
+      g3.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      var o3=c.createOscillator();o3.type='sawtooth';
+      o3.frequency.setValueAtTime(180,t);
+      o3.frequency.linearRampToValueAtTime(55,t+0.18);
+      o3.connect(g3);o3.start(t);o3.stop(t+0.18);
+    })(now+rep*0.23);
+  }
+}
+
+function flash(color){
+  var el=document.getElementById('flash');
+  el.style.background=color;el.style.opacity='0.4';
+  setTimeout(function(){el.style.opacity='0';},130);
+}
+
+function shake(id){
+  var el=document.getElementById(id);
+  el.classList.remove('shaking');
+  void el.offsetWidth;
+  el.classList.add('shaking');
+  setTimeout(function(){el.classList.remove('shaking');},340);
+}
+
+function addLog(msg,cls){
+  var log=document.getElementById('log');
+  var t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var row=document.createElement('div');
+  row.className='log-row '+cls;
+  row.innerHTML='<span>'+msg+'</span><span class="log-time">'+t+'</span>';
+  log.insertBefore(row,log.firstChild);
+}
+
+var yMsgs=[
+  '⚠️ Watch yourself.',
+  '⚠️ Final warning.',
+  '⚠️ Calm it down.',
+  '⚠️ Last chance.',
+  '⚠️ Consider this your warning.',
+  '⚠️ Proceed with caution.',
+  '⚠️ This is a warning.',
+  '⚠️ Noted. Do not repeat.'
+];
+var rMsgs=[
+  '🚨 YOU ARE EJECTED.',
+  '🚨 GET OUT.',
+  '🚨 DISMISSED. BYE.',
+  '🚨 OUT. NOW.',
+  '🚨 DONE. GOODBYE.',
+  '🚨 ABSOLUTE CHAOS. OUT.',
+  '🚨 MEETING OVER FOR YOU.',
+  '🚨 BYE BYE BYE.'
+];
+
+function triggerYellow(){
+  playYellow();
+  yCount++;
+  document.getElementById('y-count').textContent=yCount;
+  flash('#F5C518');
+  var msg=yMsgs[Math.floor(Math.random()*yMsgs.length)];
+  var st=document.getElementById('status');
+  st.textContent=msg;st.style.color='#F5C518';
+  addLog('🟨 Yellow card issued','y');
+}
+
+function triggerRed(){
+  playRed();
+  rCount++;
+  document.getElementById('r-count').textContent=rCount;
+  flash('#E53935');
+  shake('btn-red');
+  var msg=rMsgs[Math.floor(Math.random()*rMsgs.length)];
+  var st=document.getElementById('status');
+  st.textContent=msg;st.style.color='#FF6B6B';
+  addLog('🟥 Red card — EJECTED','r');
+}
+
+function resetAll(){
+  yCount=0;rCount=0;
+  document.getElementById('y-count').textContent='0';
+  document.getElementById('r-count').textContent='0';
+  document.getElementById('status').textContent='Press a card to use it';
+  document.getElementById('status').style.color='rgba(255,255,255,.4)';
+  document.getElementById('log').innerHTML='';
+}
+</script>
+</body>
+</html>
